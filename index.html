@@ -96,10 +96,10 @@
                             <td class="px-4 py-3 whitespace-nowrap">
                                 <input type="number" x-model.number="option.premium" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm">
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="formatCurrency(option.ifExpired, false)"></td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="option.ifExpiredPercent.toFixed(1) + '%'"></td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="formatCurrency(option.ifAssigned, false)"></td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="option.ifAssignedPercent.toFixed(1) + '%'"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifExpired < 0 ? 'text-red-500' : 'text-gray-700'" x-text="formatCurrency(option.ifExpired, false)"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifExpiredPercent < 0 ? 'text-red-500' : 'text-gray-700'" x-text="option.ifExpiredPercent.toFixed(1) + '%'"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifAssigned < 0 ? 'text-red-500' : 'text-gray-700'" x-text="formatCurrency(option.ifAssigned, false)"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifAssignedPercent < 0 ? 'text-red-500' : 'text-gray-700'" x-text="option.ifAssignedPercent.toFixed(1) + '%'"></td>
                         </tr>
                     </template>
                 </tbody>
