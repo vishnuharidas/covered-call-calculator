@@ -90,7 +90,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <template x-for="option in optionChain" :key="option.strikePrice">
-                        <tr :class="{'bg-yellow-100': option.strikePrice === currentStrike}">
+                        <tr :class="{'bg-blue-100': option.strikePrice === currentStrike}">
                             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" x-text="formatCurrency(option.strikePrice, false)"></td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" x-text="formatCurrency(option.intrinsicValue, false)"></td>
                             <td class="px-4 py-3 whitespace-nowrap">
