@@ -88,10 +88,10 @@
                         <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Strike Price</th>
                         <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">IV</th>
                         <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Premium</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">On Expiry</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">On Expiry %</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">On Assignment</th>
-                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">On Assmt %</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">If Expired</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">If Expired %</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">If Assigned</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">If Assigned %</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -102,10 +102,10 @@
                             <td class="px-4 py-3 whitespace-nowrap">
                                 <input type="number" x-model.number="option.premium" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm">
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="formatCurrency(option.onExpiry, false)"></td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="option.onExpiryPercent.toFixed(1) + '%'"></td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="formatCurrency(option.onAssignment, false)"></td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="option.onAssignmentPercent.toFixed(1) + '%'"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="formatCurrency(option.ifExpired, false)"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="option.ifExpiredPercent.toFixed(1) + '%'"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="formatCurrency(option.ifAssigned, false)"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="option.ifAssignedPercent.toFixed(1) + '%'"></td>
                         </tr>
                     </template>
                 </tbody>
@@ -169,20 +169,20 @@
                             get intrinsicValue() {
                                 return Math.abs(self.currentStrike - this.strikePrice);
                             },
-                            get onExpiry() {
+                            get ifExpired() {
                                 return this.premium * self.lots * self.lotSize;
                             },
-                            get onExpiryPercent() {
+                            get ifExpiredPercent() {
                                 if (self.invested === 0) return 0;
-                                return (this.onExpiry / self.invested) * 100;
+                                return (this.ifExpired / self.invested) * 100;
                             },
-                            get onAssignment() {
+                            get ifAssigned() {
                                 const stockProfit = (this.strikePrice - self.buyPrice) * self.lotSize * self.lots;
-                                return this.onExpiry + stockProfit;
+                                return this.ifExpired + stockProfit;
                             },
-                            get onAssignmentPercent() {
+                            get ifAssignedPercent() {
                                 if (self.invested === 0) return 0;
-                                return (this.onAssignment / self.invested) * 100;
+                                return (this.ifAssigned / self.invested) * 100;
                             }
                         }
                     });
