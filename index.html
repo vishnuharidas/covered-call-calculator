@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Covered Call Profit Calculator</title>
+    <meta name="description" content="A simple, single-page web application to calculate potential profits from covered call options.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8" 
+         x-data="coveredCallCalculator()" 
+         x-init="init()"
+         x-cloak>
+
+        <h1 class="text-2xl sm:text-3xl font-bold mb-6 text-center text-gray-700">Covered Call Profit Calculator</h1>
+
+        <div class="grid grid-cols-1 gap-6 mb-6">
+            <!-- Stock Details -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Stock Details</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="stock" class="block text-sm font-medium text-gray-600">Stock</label>
+                        <input type="text" id="stock" x-model="stock" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="buyPrice" class="block text-sm font-medium text-gray-600">Buy Price</label>
+                        <input type="number" id="buyPrice" x-model.number="buyPrice" @input="generateOptionChain" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="lotSize" class="block text-sm font-medium text-gray-600">Lot Size</label>
+                        <input type="number" id="lotSize" x-model.number="lotSize" @input="generateOptionChain" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="lots" class="block text-sm font-medium text-gray-600">Lots</label>
+                        <input type="number" id="lots" x-model.number="lots" @input="generateOptionChain" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="bg-gray-50 p-3 rounded-md text-center">
+                        <span class="text-sm font-medium text-gray-600">Invested</span>
+                        <p class="text-lg font-bold text-gray-800" x-text="formatCurrency(invested)"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option Chain Table -->
+        <div class="bg-white p-4 sm:p-6 rounded-lg shadow-md overflow-x-auto">
+            <div class="flex flex-wrap justify-between items-center mb-4 pb-2 border-b">
+                <h2 class="text-xl font-semibold mr-4 mb-2 sm:mb-0">Option Chain Table</h2>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div class="flex items-center gap-2">
+                        <label for="currentStrike" class="text-sm font-medium text-gray-600">Current Strike:</label>
+                        <input type="number" id="currentStrike" x-model.number="currentStrike" @input="generateOptionChain" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-1">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="strikePriceInterval" class="text-sm font-medium text-gray-600">Interval:</label>
+                        <input type="number" id="strikePriceInterval" x-model.number="strikePriceInterval" @input="generateOptionChain" class="w-20 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-1">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="strikesToDisplay" class="text-sm font-medium text-gray-600">Display:</label>
+                        <input type="number" id="strikesToDisplay" x-model.number="strikesToDisplay" @input="generateOptionChain" min="1" class="w-16 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-1">
+                    </div>
+                    <button @click="resetPremiums" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-sm">
+                        Reset
+                    </button>
+                </div>
+            </div>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Strike Price</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Premium</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">On Expiry</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">On Expiry %</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">On Assignment</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">On Assmt %</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <template x-for="option in optionChain" :key="option.strikePrice">
+                        <tr :class="{'bg-yellow-100': option.strikePrice === currentStrike}">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900" x-text="formatCurrency(option.strikePrice, false)"></td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <input type="number" x-model.number="option.premium" class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm">
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="formatCurrency(option.onExpiry, false)"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="option.onExpiryPercent.toFixed(1) + '%'"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="formatCurrency(option.onAssignment, false)"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="option.onAssignmentPercent.toFixed(1) + '%'"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function coveredCallCalculator() {
+            return {
+                stock: 'CDSL',
+                buyPrice: 1500,
+                lotSize: 475,
+                lots: 1,
+                strikePriceInterval: 20,
+                currentStrike: 1560,
+                strikesToDisplay: 3,
+                optionChain: [],
+
+                get invested() {
+                    return this.buyPrice * this.lotSize * this.lots;
+                },
+
+                init() {
+                    this.generateOptionChain();
+                },
+
+                resetPremiums() {
+                    if (confirm('Are you sure you want to reset all premium values?')) {
+                        this.optionChain.forEach(option => {
+                            option.premium = 0;
+                        });
+                    }
+                },
+
+                generateOptionChain() {
+                    if (this.strikePriceInterval === null || this.strikePriceInterval === '' || isNaN(this.strikePriceInterval)) {
+                        // Don't generate if interval is invalid
+                        return;
+                    }
+                    const strikes = [];
+                    const numStrikes = Math.max(1, this.strikesToDisplay);
+                    const interval = this.strikePriceInterval;
+                    const current = this.currentStrike;
+
+                    for (let i = numStrikes; i > 0; i--) {
+                        strikes.push(current - (i * interval));
+                    }
+                    strikes.push(current);
+                    for (let i = 1; i <= numStrikes; i++) {
+                        strikes.push(current + (i * interval));
+                    }
+
+                    const existingPremiums = new Map(this.optionChain.map(o => [o.strikePrice, o.premium]));
+
+                    this.optionChain = strikes.map(strike => {
+                        const self = this;
+                        return {
+                            strikePrice: strike,
+                            premium: existingPremiums.get(strike) || 0,
+                            get onExpiry() {
+                                return this.premium * self.lots * self.lotSize;
+                            },
+                            get onExpiryPercent() {
+                                if (self.invested === 0) return 0;
+                                return (this.onExpiry / self.invested) * 100;
+                            },
+                            get onAssignment() {
+                                const stockProfit = (this.strikePrice - self.buyPrice) * self.lotSize * self.lots;
+                                return this.onExpiry + stockProfit;
+                            },
+                            get onAssignmentPercent() {
+                                if (self.invested === 0) return 0;
+                                return (this.onAssignment / self.invested) * 100;
+                            }
+                        }
+                    });
+                },
+
+                formatCurrency(value, withSymbol = true) {
+                    const options = {
+                        style: 'currency',
+                        currency: 'INR',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                    };
+                    if (!withSymbol) {
+                        delete options.style;
+                        delete options.currency;
+                    }
+                    return new Intl.NumberFormat('en-IN', options).format(value);
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>
