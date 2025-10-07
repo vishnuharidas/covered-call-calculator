@@ -9,15 +9,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield;
-            appearance: textfield;
-        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800 font-sans">
@@ -78,7 +69,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <label for="strikesToDisplay" class="text-sm font-medium text-gray-600">Display:</label>
-                        <input type="number" id="strikesToDisplay" x-model.number="strikesToDisplay" @input="generateOptionChain" min="1" class="w-16 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-1">
+                        <input type="number" id="strikesToDisplay" x-model.number="strikesToDisplay" @input="generateOptionChain" min="3" max="15" class="w-20 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-1">
                     </div>
                     <button @click="resetPremiums" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-sm">
                         Reset
