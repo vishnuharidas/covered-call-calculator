@@ -71,6 +71,16 @@
                         <label for="strikesToDisplay" class="text-sm font-medium text-gray-600">Display:</label>
                         <input type="number" id="strikesToDisplay" x-model.number="strikesToDisplay" @input="generateOptionChain" min="3" max="15" class="w-20 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm p-1">
                     </div>
+                    <button @click="importChainData" title="Import Option Chain Data" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L16.732 3.732z" />
+                        </svg>
+                    </button>
+                    <button @click="showGptPrompt" title="Show ChatGPT Prompt" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
                     <button @click="resetPremiums" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-sm">
                         Reset
                     </button>
@@ -140,7 +150,50 @@
                     }
                 },
 
-                generateOptionChain() {
+                importChainData() {
+                    const data = prompt('Paste option chain data:');
+                    if (!data) return;
+
+                    try {
+                        const params = new URLSearchParams(data);
+                        const c = params.get('c');
+                        const i = params.get('i');
+                        const chain = params.get('chain');
+
+                        if (!c || !i || !chain) {
+                            throw new Error('Invalid data format. Missing current (c), strike price interval (i), or chain.');
+                        }
+
+                        this.currentStrike = parseInt(c, 10);
+                        this.strikePriceInterval = parseInt(i, 10);
+
+                        const premiumMap = new Map();
+                        chain.split(',').forEach(pair => {
+                            const [strike, premium] = pair.split('@');
+                            premiumMap.set(parseInt(strike, 10), parseFloat(premium));
+                        });
+
+                        // Update existing premiums or set new ones
+                        this.optionChain.forEach(option => {
+                            if (premiumMap.has(option.strikePrice)) {
+                                option.premium = premiumMap.get(option.strikePrice);
+                            }
+                        });
+                        
+                        // Regenerate chain if needed, preserving new premiums
+                        this.generateOptionChain(premiumMap);
+
+                    } catch (e) {
+                        alert('Error parsing data: ' + e.message);
+                    }
+                },
+
+                showGptPrompt() {
+                    const message = `Prompt: Extract the Call premiums from this screenshot in this format: \`c={current-strike-price}&i={strike-price-interval}&chain={list of strike@premium format}\``;
+                    prompt("Copy this prompt and use it with ChatGPT:", message);
+                },
+
+                generateOptionChain(newPremiums) {
                     if (this.strikePriceInterval === null || this.strikePriceInterval === '' || isNaN(this.strikePriceInterval)) {
                         // Don't generate if interval is invalid
                         return;
@@ -159,12 +212,13 @@
                     }
 
                     const existingPremiums = new Map(this.optionChain.map(o => [o.strikePrice, o.premium]));
+                    const premiumMap = newPremiums instanceof Map ? newPremiums : existingPremiums;
 
                     this.optionChain = strikes.map(strike => {
                         const self = this;
                         return {
                             strikePrice: strike,
-                            premium: existingPremiums.get(strike) || 0,
+                            premium: premiumMap.get(strike) || 0,
                             get intrinsicValue() {
                                 return Math.abs(self.currentStrike - this.strikePrice);
                             },
