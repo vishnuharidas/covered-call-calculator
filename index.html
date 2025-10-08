@@ -133,6 +133,7 @@
                 currentStrike: 1560,
                 strikesToDisplay: 3,
                 optionChain: [],
+                premiumData: new Map(),
 
                 get invested() {
                     return this.buyPrice * this.lotSize * this.lots;
@@ -144,9 +145,8 @@
 
                 resetPremiums() {
                     if (confirm('Are you sure you want to reset all premium values?')) {
-                        this.optionChain.forEach(option => {
-                            option.premium = 0;
-                        });
+                        this.premiumData.clear();
+                        this.generateOptionChain();
                     }
                 },
 
@@ -173,15 +173,13 @@
                             premiumMap.set(parseInt(strike, 10), parseFloat(premium));
                         });
 
-                        // Update existing premiums or set new ones
-                        this.optionChain.forEach(option => {
-                            if (premiumMap.has(option.strikePrice)) {
-                                option.premium = premiumMap.get(option.strikePrice);
-                            }
+                        // Merge with existing premium data
+                        premiumMap.forEach((value, key) => {
+                            this.premiumData.set(key, value);
                         });
                         
                         // Regenerate chain if needed, preserving new premiums
-                        this.generateOptionChain(premiumMap);
+                        this.generateOptionChain();
 
                     } catch (e) {
                         alert('Error parsing data: ' + e.message);
@@ -193,7 +191,7 @@
                     prompt("Copy this prompt and use it with ChatGPT:", message);
                 },
 
-                generateOptionChain(newPremiums) {
+                generateOptionChain() {
                     if (this.strikePriceInterval === null || this.strikePriceInterval === '' || isNaN(this.strikePriceInterval)) {
                         // Don't generate if interval is invalid
                         return;
@@ -211,14 +209,16 @@
                         strikes.push(current + (i * interval));
                     }
 
-                    const existingPremiums = new Map(this.optionChain.map(o => [o.strikePrice, o.premium]));
-                    const premiumMap = newPremiums instanceof Map ? newPremiums : existingPremiums;
-
                     this.optionChain = strikes.map(strike => {
                         const self = this;
                         return {
                             strikePrice: strike,
-                            premium: premiumMap.get(strike) || 0,
+                            get premium() {
+                                return self.premiumData.get(strike) || 0;
+                            },
+                            set premium(value) {
+                                self.premiumData.set(strike, parseFloat(value) || 0);
+                            },
                             get intrinsicValue() {
                                 return Math.abs(self.currentStrike - this.strikePrice);
                             },
