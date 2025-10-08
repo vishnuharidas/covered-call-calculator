@@ -109,7 +109,14 @@
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifExpired < 0 ? 'text-red-500' : 'text-gray-700'" x-text="formatCurrency(option.ifExpired, false)"></td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifExpiredPercent < 0 ? 'text-red-500' : 'text-gray-700'" x-text="option.ifExpiredPercent.toFixed(1) + '%'"></td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifAssigned < 0 ? 'text-red-500' : 'text-gray-700'" x-text="formatCurrency(option.ifAssigned, false)"></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifAssigned < 0 ? 'text-red-500' : 'text-gray-700'">
+                                <span x-text="formatCurrency(option.ifAssigned, false)"></span>
+                                <button @click="showExpiryAnalysis(option)" class="ml-1 text-blue-500 hover:text-blue-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.ifAssignedPercent < 0 ? 'text-red-500' : 'text-gray-700'" x-text="option.ifAssignedPercent.toFixed(1) + '%'"></td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm" :class="option.regularPL < 0 ? 'text-red-500' : 'text-gray-700'">
                                 <span x-text="formatCurrency(option.regularPL, false)"></span>
@@ -119,6 +126,55 @@
                     </template>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Expiry Analysis Modal -->
+        <div x-show="showAnalysisModal" @keydown.escape.window="closeAnalysisModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" style="display: none;">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" @click.away="closeAnalysisModal">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">Expiry Analysis for Strike Price: <span x-text="formatCurrency(analysisData.strikePrice, false)"></span></h3>
+                    <button @click="closeAnalysisModal" class="text-gray-500 hover:text-gray-800">&times;</button>
+                </div>
+                <div class="p-4 overflow-y-auto">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4 text-sm">
+                        <div class="bg-gray-50 p-2 rounded">
+                            <div class="font-semibold">Buy Price (BP)</div>
+                            <div x-text="formatCurrency(buyPrice, false)"></div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded">
+                            <div class="font-semibold">Call Premium (Pr)</div>
+                            <div x-text="formatCurrency(analysisData.premium, false)"></div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded">
+                            <div class="font-semibold">Premium Collected</div>
+                            <div x-text="formatCurrency(analysisData.premiumCollected)"></div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded">
+                            <div class="font-semibold">Lot Size / Lots</div>
+                            <div x-text="`${lotSize} / ${lots}`"></div>
+                        </div>
+                    </div>
+
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase" title="Hypothetical stock price on the expiry date.">Stock Price at Expiry (SPE)</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase" title="Profit or Loss from the stock holding. If SPE > CSP, P/L is (CSP - BP) * Lots * Lot Size. Otherwise, it is (SPE - BP) * Lots * Lot Size.">Stock P/L</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase" title="Total Profit or Loss. Calculated as Stock P/L + Premium Collected.">Actual P/L</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="row in analysisData.analysis" :key="row.spe">
+                                <tr :class="{'bg-green-100': row.spe >= analysisData.strikePrice, 'bg-red-100': row.spe < analysisData.strikePrice, 'font-bold bg-yellow-100': row.spe === analysisData.strikePrice}">
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm" x-text="formatCurrency(row.spe, false)"></td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm" :class="row.stockPL < 0 ? 'text-red-600' : 'text-gray-800'" x-text="formatCurrency(row.stockPL)"></td>
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm" :class="row.actualPL < 0 ? 'text-red-600' : 'text-gray-800'" x-text="formatCurrency(row.actualPL)"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -134,6 +190,8 @@
                 strikesToDisplay: 3,
                 optionChain: [],
                 premiumData: new Map(),
+                showAnalysisModal: false,
+                analysisData: { strikePrice: 0, premium: 0, premiumCollected: 0, analysis: [] },
 
                 get invested() {
                     return this.buyPrice * this.lotSize * this.lots;
@@ -189,6 +247,40 @@
                 showGptPrompt() {
                     const message = `Prompt: Extract the Call premiums from this screenshot in this format: \`c={current-strike-price}&i={strike-price-interval}&chain={list of strike@premium format}\``;
                     prompt("Copy this prompt and use it with ChatGPT:", message);
+                },
+
+                showExpiryAnalysis(option) {
+                    const premiumCollected = option.premium * this.lots * this.lotSize;
+                    const analysis = [];
+                    const interval = this.strikePriceInterval;
+                    const csp = option.strikePrice;
+
+                    for (let i = -10; i <= 10; i++) {
+                        const spe = csp + (i * interval);
+                        let stockPL;
+
+                        if (spe > csp) { // Assigned
+                            stockPL = (csp - this.buyPrice) * this.lotSize * this.lots;
+                        } else { // Not assigned
+                            stockPL = (spe - this.buyPrice) * this.lotSize * this.lots;
+                        }
+                        
+                        const actualPL = stockPL + premiumCollected;
+
+                        analysis.push({ spe, stockPL, actualPL });
+                    }
+
+                    this.analysisData = {
+                        strikePrice: csp,
+                        premium: option.premium,
+                        premiumCollected: premiumCollected,
+                        analysis: analysis
+                    };
+                    this.showAnalysisModal = true;
+                },
+
+                closeAnalysisModal() {
+                    this.showAnalysisModal = false;
                 },
 
                 generateOptionChain() {
